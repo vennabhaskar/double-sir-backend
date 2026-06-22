@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Double Sir Trump – Multiplayer Card Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script defer>
+    // Minimal dark/light toggle
+    (function(){
+      const root = document.documentElement;
+      const stored = null;
+      let theme = stored || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      root.setAttribute('data-theme', theme);
+      window.toggleTheme = function(){
+        theme = theme === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', theme);
+      }
+    })();
+  </script>
+  <style>
+    :root, [data-theme="light"] {
+      --bg: #0b1020;
+      --bg-soft: #111629;
+      --bg-softer: #151b30;
+      --surface: #181f38;
+      --surface-soft: #1f2742;
+      --border-subtle: rgba(255,255,255,0.08);
+      --accent: #0bd3c4;
+      --accent-soft: rgba(11,211,196,0.16);
+      --accent-strong: #12ffe9;
+      --danger: #ff4b81;
+      --text: #f6f7ff;
+      --text-muted: #94a3b8;
+      --text-soft: #64748b;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+      --shadow-soft: 0 18px 70px rgba(0,0,0,0.65);
+      --shadow-subtle: 0 12px 40px rgba(0,0,0,0.45);
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --card-w: 96px;
+      --card-h: 140px;
+      --card-radius: 12px;
+      --turn-glow: 0 0 0 2px rgba(11,211,196,0.6), 0 0 40px rgba(11,211,196,0.55);
+      --transition-fast: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="dark"] {
+      /* same palette for now, you can tune later */
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at top, #162447 0, #020617 55%);
+      color: var(--text);
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      padding: var(--space-6) var(--space-4);
+    }
+
+    .game-shell {
+      width: min(1120px, 100%);
+      background:
+        radial-gradient(circle at 10% 0%, rgba(11,211,196,0.15), transparent 55%),
+        radial-gradient(circle at 90% 0%, rgba(248,113,113,0.18), transparent 60%),
+        linear-gradient(135deg, #020617, #020617 40%, #020617 100%);
+      border-radius: 28px;
+      border: 1px solid rgba(148,163,184,0.35);
+      box-shadow: var(--shadow-soft);
+      padding: var(--space-5);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .game-shell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 50% 10%, rgba(15,23,42,0.65), transparent 55%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .game-shell-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #0bd3c4, #0f768f);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 24px rgba(11,211,196,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .brand-logo::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border-radius: inherit;
+      border: 1px solid rgba(15,23,42,0.65);
+    }
+
+    .brand-logo span {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #020617;
+    }
+
+    .brand-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-meta .title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .brand-meta .subtitle {
+      font-size: 0.75rem;
+      color: var(--text-soft);
+    }
+
+    .room-info {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: 0.35rem 0.85rem;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.35);
+      background: linear-gradient(135deg, rgba(15,23,42,0.92), rgba(15,23,42,0.6));
+      box-shadow: 0 10px 35px rgba(15,23,42,0.7);
+      font-size: 0.78rem;
+    }
+
+    .room-pill-label { color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; }
+
+    .room-pill-code { font-weight: 600; color: #e2e8f0; }
+
+    .room-pill-action {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(45,212,191,0.4);
+    }
+
+    .top-right-actions {
+      display: flex;
+      gap: var(--space-2);
+      align-items: center;
+    }
+
+    .btn-ghost {
+      padding: 0.4rem 0.9rem;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(148,163,184,0.35);
+      background: rgba(15,23,42,0.7);
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      cursor: pointer;
+      backdrop-filter: blur(14px);
+      transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.9);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 45px rgba(15,23,42,0.85);
+    }
+
+    .btn-primary {
+      padding: 0.45rem 1.1rem;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: radial-gradient(circle at 0% 0%, #22f0ff, #0bd3c4 45%, #10b981 100%);
+      color: #020617;
+      font-size: 0.8rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      box-shadow: 0 14px 45px rgba(45,212,191,0.65);
+      position: relative;
+      overflow: hidden;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      border: 1px solid rgba(15,23,42,0.15);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 60px rgba(45,212,191,0.8);
+    }
+
+    .btn-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: radial-gradient(circle at 30% 0%, rgba(248,250,252,0.08), rgba(15,23,42,0.95));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #e5e7eb;
+      cursor: pointer;
+      box-shadow: 0 12px 40px rgba(15,23,42,0.75);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+    }
+
+    .btn-icon:hover {
+      transform: translateY(-1px);
+      border-color: rgba(248,250,252,0.5);
+      box-shadow: 0 15px 55px rgba(15,23,42,0.9);
+    }
+
+    .layout-main {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(260px, 1.3fr);
+      gap: var(--space-4);
+      margin-top: var(--space-2);
+    }
+
+    @media (max-width: 900px) {
+      .layout-main { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    /* TABLE AREA */
+    .table-shell {
+      border-radius: 24px;
+      background: radial-gradient(circle at 50% 0%, rgba(11,211,196,0.08), transparent 65%),
+                  radial-gradient(circle at 0% 100%, rgba(79,70,229,0.25), transparent 70%),
+                  radial-gradient(circle at 100% 100%, rgba(251,113,133,0.22), transparent 70%),
+                  linear-gradient(150deg, #020617, #020617 50%, #020617 100%);
+      border: 1px solid rgba(148,163,184,0.25);
+      padding: var(--space-4);
+      box-shadow: var(--shadow-subtle);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .table-shell::before {
+      content: '';
+      position: absolute;
+      inset: 1px;
+      border-radius: inherit;
+      border: 1px solid rgba(15,23,42,0.85);
+      pointer-events: none;
+    }
+
+    .table-shell-inner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .table-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+
+    .trump-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0.9rem;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.85);
+      border: 1px solid rgba(148,163,184,0.5);
+      box-shadow: 0 10px 35px rgba(15,23,42,0.85);
+      font-size: 0.78rem;
+    }
+
+    .trump-suit {
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      background: radial-gradient(circle at 30% 0%, #fee2e2, #7f1d1d);
+      box-shadow: 0 10px 30px rgba(239,68,68,0.5);
+    }
+
+    .turn-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .turn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34,197,94,0.22);
+    }
+
+    .table-grid {
+      position: relative;
+      width: 100%;
+      padding: var(--space-8) var(--space-4);
+      border-radius: 22px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(15,23,42,0.92), rgba(15,23,42,0.95)),
+        repeating-linear-gradient(90deg, rgba(15,23,42,0.12) 0, rgba(15,23,42,0.12) 1px, transparent 1px, transparent 16px),
+        repeating-linear-gradient(180deg, rgba(15,23,42,0.12) 0, rgba(15,23,42,0.12) 1px, transparent 1px, transparent 16px);
+      box-shadow: inset 0 0 0 1px rgba(15,23,42,0.85);
+    }
+
+    .table-grid::before {
+      content: '';
+      position: absolute;
+      inset: 18px;
+      border-radius: calc(22px - 18px);
+      border: 1px dashed rgba(148,163,184,0.3);
+      opacity: 0.7;
+    }
+
+    .table-players {
+      position: relative;
+      width: 100%;
+      height: 260px;
+      display: grid;
+      place-items: center;
+    }
+
+    .player-seat {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+      min-width: 120px;
+    }
+
+    .seat-top { top: 0; left: 50%; transform: translate(-50%, -6px); }
+    .seat-bottom { bottom: -2px; left: 50%; transform: translate(-50%, 4px); }
+    .seat-left { left: -10px; top: 50%; transform: translate(0, -50%); }
+    .seat-right { right: -10px; top: 50%; transform: translate(0, -50%); }
+
+    .seat-tag {
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.45);
+      background: linear-gradient(135deg, rgba(15,23,42,0.93), rgba(15,23,42,0.7));
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.85);
+    }
+
+    .seat-tag .team-pill {
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: rgba(15,23,42,0.92);
+      border: 1px solid rgba(148,163,184,0.5);
+      color: var(--text-soft);
+    }
+
+    .seat-tag .label {
+      font-weight: 500;
+      color: #e2e8f0;
+    }
+
+    .seat-tag .meta { color: var(--text-soft); font-size: 0.7rem; }
+
+    .seat-tag.turn {
+      box-shadow: var(--turn-glow);
+      border-color: rgba(34,197,94,0.9);
+    }
+
+    .mini-cards-row {
+      display: flex;
+      gap: 2px;
+      transform: translateY(2px);
+    }
+
+    .mini-card-back {
+      width: 16px;
+      height: 22px;
+      border-radius: 3px;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(248,250,252,0.28), transparent 50%),
+        linear-gradient(135deg, #0f172a, #1f2937);
+      border: 1px solid rgba(148,163,184,0.55);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.75);
+    }
+
+    .mini-card-count {
+      font-size: 0.68rem;
+      color: var(--text-soft);
+    }
+
+    .table-center-stack {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      transform: translate(-50%, -55%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .table-center-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--text-soft);
+    }
+
+    .table-center-cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-2);
+    }
+
+    .card-face {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: var(--card-radius);
+      background: #f8fafc;
+      color: #020617;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.95);
+      position: relative;
+      overflow: hidden;
+      padding: 6px 7px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transform-origin: center center;
+      transform: translateY(0) scale(1);
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+    }
+
+    .card-face.trump-card {
+      outline: 2px solid rgba(239,68,68,0.85);
+      box-shadow: 0 18px 50px rgba(239,68,68,0.7);
+    }
+
+    .card-face.top-card {
+      transform: translateY(-4px) scale(1.02);
+      z-index: 2;
+    }
+
+    .card-face::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 0% 0%, rgba(248,250,252,0.45), transparent 55%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .card-corner {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    .card-corner.bottom {
+      align-items: flex-end;
+      text-align: right;
+    }
+
+    .card-suit-symbol { font-size: 0.78rem; }
+    .card-rank { font-size: 0.95rem; }
+
+    .card-suit-symbol.red, .card-rank.red { color: #b91c1c; }
+    .card-suit-symbol.black, .card-rank.black { color: #020617; }
+
+    .card-center-glyph {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.1rem;
+      filter: drop-shadow(0 8px 18px rgba(15,23,42,0.85));
+    }
+
+    .card-back {
+      width: var(--card-w);
+      height: var(--card-h);
+      border-radius: var(--card-radius);
+      background:
+        radial-gradient(circle at 0% 0%, rgba(248,250,252,0.45), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(15,23,42,0.9), rgba(15,23,42,1)),
+        linear-gradient(135deg, #020617, #111827);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 18px 40px rgba(15,23,42,0.95);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-back-inner {
+      position: absolute;
+      inset: 6px;
+      border-radius: calc(var(--card-radius) - 4px);
+      border: 1px solid rgba(248,250,252,0.16);
+      background-image:
+        radial-gradient(circle at 1px 1px, rgba(248,250,252,0.28) 1px, transparent 0);
+      background-size: 9px 9px;
+      opacity: 0.95;
+    }
+
+    .card-back-logo {
+      position: relative;
+      z-index: 1;
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: radial-gradient(circle at 30% 30%, #0bd3c4, #0369a1);
+      box-shadow: 0 0 24px rgba(45,212,191,0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #020617;
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+
+    .table-footer-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .streak-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: rgba(22,163,74,0.13);
+      border: 1px solid rgba(34,197,94,0.6);
+      color: #bbf7d0;
+      box-shadow: 0 10px 30px rgba(22,163,74,0.45);
+    }
+
+    .pile-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.5);
+      color: var(--text-muted);
+    }
+
+    .pile-chip {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.7);
+      background:
+        radial-gradient(circle at 30% 0%, rgba(248,250,252,0.32), transparent 55%),
+        linear-gradient(145deg, #020617, #0b1120);
+      box-shadow: 0 8px 24px rgba(15,23,42,0.9);
+      position: relative;
+    }
+
+    .pile-chip::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border-radius: inherit;
+      border: 1px solid rgba(148,163,184,0.4);
+    }
+
+    .pile-pill strong { color: #e2e8f0; font-weight: 500; }
+
+    /* SIDEBAR */
+    .sidebar-shell {
+      border-radius: 20px;
+      background: linear-gradient(155deg, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+      border: 1px solid rgba(148,163,184,0.4);
+      box-shadow: var(--shadow-subtle);
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .sidebar-section-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-soft);
+    }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: var(--space-2);
+    }
+
+    .team-score-card {
+      flex: 1;
+      border-radius: 16px;
+      padding: var(--space-3);
+      background: radial-gradient(circle at 0% 0%, rgba(45,212,191,0.18), transparent 60%),
+                  linear-gradient(135deg, rgba(15,23,42,0.95), rgba(15,23,42,0.96));
+      border: 1px solid rgba(45,212,191,0.4);
+      box-shadow: 0 16px 40px rgba(15,23,42,0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .team-score-card.team-b {
+      margin-left: var(--space-3);
+      background: radial-gradient(circle at 100% 0%, rgba(244,114,182,0.18), transparent 60%),
+                  linear-gradient(135deg, rgba(15,23,42,0.96), rgba(15,23,42,0.96));
+      border-color: rgba(244,114,182,0.6);
+    }
+
+    .team-label-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .team-name-pill {
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.6);
+      background: rgba(15,23,42,0.88);
+    }
+
+    .team-score-main {
+      display: flex;
+      align-items: baseline;
+      gap: 0.25rem;
+      margin-top: 0.3rem;
+    }
+
+    .team-score-main strong {
+      font-size: 1.5rem;
+      letter-spacing: 0.04em;
+    }
+
+    .team-score-main span {
+      font-size: 0.8rem;
+      color: var(--text-soft);
+    }
+
+    .team-meta-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.2rem;
+      font-size: 0.72rem;
+      color: var(--text-soft);
+    }
+
+    .team-meta-pill {
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.85);
+      border: 1px solid rgba(148,163,184,0.45);
+    }
+
+    .rules-panel {
+      padding: var(--space-3);
+      border-radius: 16px;
+      background: radial-gradient(circle at 0% 0%, rgba(11,197,204,0.16), transparent 60%),
+                  linear-gradient(130deg, rgba(15,23,42,0.98), rgba(15,23,42,0.96));
+      border: 1px solid rgba(148,163,184,0.55);
+      box-shadow: 0 14px 40px rgba(15,23,42,0.9);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+    }
+
+    .rules-panel h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-muted);
+      margin-bottom: 0.15rem;
+    }
+
+    .rules-highlight {
+      padding: 0.35rem 0.6rem;
+      border-radius: 12px;
+      border: 1px solid rgba(34,197,94,0.7);
+      background: rgba(22,163,74,0.12);
+      color: #bbf7d0;
+      font-size: 0.76rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .rules-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .rules-list li {
+      display: flex;
+      gap: 0.4rem;
+      align-items: flex-start;
+    }
+
+    .rules-list span.idx {
+      width: 1.2rem;
+      text-align: right;
+      color: var(--text-soft);
+      font-size: 0.7rem;
+    }
+
+    .rules-list span.txt {
+      flex: 1;
+    }
+
+    .actions-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      margin-top: var(--space-2);
+    }
+
+    .actions-row .left {
+      display: flex;
+      gap: 0.4rem;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--text-soft);
+    }
+
+    .actions-row .left-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(148,163,184,0.7);
+    }
+
+    .actions-row button {
+      font-size: 0.78rem;
+    }
+
+    .cards-row-bottom {
+      margin-top: var(--space-4);
+      padding: var(--space-3);
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(15,23,42,0.96), rgba(15,23,42,0.9));
+      border: 1px solid rgba(148,163,184,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+
+    .player-hand-label {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      margin-bottom: 0.4rem;
+    }
+
+    .cards-hand-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-end;
+    }
+
+    .card-face.interactive {
+      cursor: pointer;
+    }
+
+    .card-face.interactive:hover {
+      transform: translateY(-8px) scale(1.04);
+      box-shadow: 0 22px 55px rgba(15,23,42,0.95);
+      filter: saturate(1.05);
+    }
+
+    .hand-stats {
+      font-size: 0.75rem;
+      color: var(--text-soft);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      align-items: flex-end;
+    }
+
+    .hand-stats strong { color: #e5e7eb; }
+    .hand-pill { padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid rgba(148,163,184,0.55); }
+
+    @media (max-width: 720px) {
+      .game-shell { padding: var(--space-4) var(--space-3); border-radius: 22px; }
+      .table-grid { padding: var(--space-6) var(--space-2); }
+      .table-players { height: 230px; }
+      .card-face, .card-back { width: 80px; height: 116px; }
+      .layout-main { gap: var(--space-3); }
+      .cards-row-bottom { flex-direction: column; align-items: stretch; }
+      .hand-stats { align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-shell">
+    <div class="game-shell-inner">
+      <header class="top-bar">
+        <div class="brand">
+          <div class="brand-logo"><span>DS</span></div>
+          <div class="brand-meta">
+            <div class="title">Double Sir Trump</div>
+            <div class="subtitle">Room play · 2v2 · browser only</div>
+          </div>
+        </div>
+        <div class="room-info">
+          <span class="room-pill-label">Room</span>
+          <span class="room-pill-code">#9F7K</span>
+          <span class="room-pill-action">Copy &amp; share</span>
+        </div>
+        <div class="top-right-actions">
+          <button class="btn-ghost" onclick="toggleTheme()">
+            <span>Toggle theme</span>
+          </button>
+          <button class="btn-icon" title="Settings">
+            <span style="font-size:14px;">⚙</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="layout-main">
+        <section class="table-shell" aria-label="card table">
+          <div class="table-shell-inner">
+            <div class="table-header-row">
+              <div class="trump-chip">
+                <div class="trump-suit" aria-label="Trump suit hearts">♥</div>
+                <div>
+                  <div style="font-size:0.72rem; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-soft);">Trump Keeper</div>
+                  <div style="font-size:0.8rem;">Hearts declared · hidden card ready</div>
+                </div>
+              </div>
+              <div class="turn-indicator">
+                <span class="turn-dot"></span>
+                <span>South to lead · suit must follow unless trumping</span>
+              </div>
+            </div>
+
+            <div class="table-grid">
+              <div class="table-players">
+                <div class="player-seat seat-top">
+                  <div class="seat-tag">
+                    <span class="team-pill">Team A</span>
+                    <div>
+                      <div class="label">North · Trump Keeper</div>
+                      <div class="meta">Last win · 1 streak</div>
+                    </div>
+                  </div>
+                  <div class="mini-cards-row" aria-hidden="true">
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                  </div>
+                  <div class="mini-card-count">8 cards</div>
+                </div>
+
+                <div class="player-seat seat-bottom">
+                  <div class="seat-tag turn">
+                    <span class="team-pill">Team A</span>
+                    <div>
+                      <div class="label">South · You</div>
+                      <div class="meta">Your turn · follow ♣ or trump</div>
+                    </div>
+                  </div>
+                  <div class="mini-cards-row" aria-hidden="true">
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                  </div>
+                  <div class="mini-card-count">8 cards</div>
+                </div>
+
+                <div class="player-seat seat-left">
+                  <div class="seat-tag">
+                    <span class="team-pill">Team B</span>
+                    <div>
+                      <div class="label">West</div>
+                      <div class="meta">Waiting · can reveal trump</div>
+                    </div>
+                  </div>
+                  <div class="mini-cards-row" aria-hidden="true">
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                  </div>
+                  <div class="mini-card-count">8 cards</div>
+                </div>
+
+                <div class="player-seat seat-right">
+                  <div class="seat-tag">
+                    <span class="team-pill">Team B</span>
+                    <div>
+                      <div class="label">East</div>
+                      <div class="meta">Partner · discarding</div>
+                    </div>
+                  </div>
+                  <div class="mini-cards-row" aria-hidden="true">
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                    <div class="mini-card-back"></div>
+                  </div>
+                  <div class="mini-card-count">8 cards</div>
+                </div>
+
+                <div class="table-center-stack">
+                  <div class="table-center-label">Current trick</div>
+                  <div class="table-center-cards" aria-live="polite">
+                    <div class="card-face top-card" aria-label="North led queen of clubs">
+                      <div class="card-corner">
+                        <span class="card-rank black">Q</span>
+                        <span class="card-suit-symbol black">♣</span>
+                      </div>
+                      <div class="card-center-glyph">♣</div>
+                      <div class="card-corner bottom">
+                        <span class="card-rank black">Q</span>
+                        <span class="card-suit-symbol black">♣</span>
+                      </div>
+                    </div>
+                    <div class="card-face" aria-label="East played seven of clubs">
+                      <div class="card-corner">
+                        <span class="card-rank black">7</span>
+                        <span class="card-suit-symbol black">♣</span>
+                      </div>
+                      <div class="card-center-glyph">♣</div>
+                      <div class="card-corner bottom">
+                        <span class="card-rank black">7</span>
+                        <span class="card-suit-symbol black">♣</span>
+                      </div>
+                    </div>
+                    <div class="card-face" aria-label="West discarded five of diamonds face up">
+                      <div class="card-corner">
+                        <span class="card-rank red">5</span>
+                        <span class="card-suit-symbol red">♦</span>
+                      </div>
+                      <div class="card-center-glyph">♦</div>
+                      <div class="card-corner bottom">
+                        <span class="card-rank red">5</span>
+                        <span class="card-suit-symbol red">♦</span>
+                      </div>
+                    </div>
+                    <div class="card-back" aria-label="Trump keeper discarding face down">
+                      <div class="card-back-inner"></div>
+                      <div class="card-back-logo">DS</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="table-footer-row">
+                <div>
+                  <span style="font-size:0.75rem; color:var(--text-soft);">Consecutive wins:</span>
+                  <span class="streak-pill">Team A · 1 / 2</span>
+                </div>
+                <div class="pile-pill" aria-label="Cards accumulated in table pile">
+                  <div class="pile-chip"></div>
+                  <span>Table pile</span>
+                  <strong>12 cards</strong>
+                  <span style="font-size:0.7rem; color:var(--text-soft);">Captured when same player wins 2 in a row</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cards-row-bottom">
+              <div>
+                <div class="player-hand-label">Your hand · South · click to play</div>
+                <div class="cards-hand-row">
+                  <div class="card-face interactive" aria-label="Ace of hearts in hand">
+                    <div class="card-corner">
+                      <span class="card-rank red">A</span>
+                      <span class="card-suit-symbol red">♥</span>
+                    </div>
+                    <div class="card-center-glyph">♥</div>
+                    <div class="card-corner bottom">
+                      <span class="card-rank red">A</span>
+                      <span class="card-suit-symbol red">♥</span>
+                    </div>
+                  </div>
+                  <div class="card-face interactive" aria-label="Ten of clubs in hand">
+                    <div class="card-corner">
+                      <span class="card-rank black">10</span>
+                      <span class="card-suit-symbol black">♣</span>
+                    </div>
+                    <div class="card-center-glyph">♣</div>
+                    <div class="card-corner bottom">
+                      <span class="card-rank black">10</span>
+                      <span class="card-suit-symbol black">♣</span>
+                    </div>
+                  </div>
+                  <div class="card-face interactive trump-card" aria-label="King of hearts (trump)">
+                    <div class="card-corner">
+                      <span class="card-rank red">K</span>
+                      <span class="card-suit-symbol red">♥</span>
+                    </div>
+                    <div class="card-center-glyph">♥</div>
+                    <div class="card-corner bottom">
+                      <span class="card-rank red">K</span>
+                      <span class="card-suit-symbol red">♥</span>
+                    </div>
+                  </div>
+                  <div class="card-face interactive" aria-label="Jack of spades in hand">
+                    <div class="card-corner">
+                      <span class="card-rank black">J</span>
+                      <span class="card-suit-symbol black">♠</span>
+                    </div>
+                    <div class="card-center-glyph">♠</div>
+                    <div class="card-corner bottom">
+                      <span class="card-rank black">J</span>
+                      <span class="card-suit-symbol black">♠</span>
+                    </div>
+                  </div>
+                  <div class="card-face interactive" aria-label="Three of diamonds in hand">
+                    <div class="card-corner">
+                      <span class="card-rank red">3</span>
+                      <span class="card-suit-symbol red">♦</span>
+                    </div>
+                    <div class="card-center-glyph">♦</div>
+                    <div class="card-corner bottom">
+                      <span class="card-rank red">3</span>
+                      <span class="card-suit-symbol red">♦</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="hand-stats">
+                <div class="hand-pill">Trump cards in hand: <strong>3</strong></div>
+                <div>Last trick won: <strong>Team B</strong></div>
+                <div>Next win with non‑Ace captures pile</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="sidebar-shell" aria-label="score and rules">
+          <div>
+            <div class="sidebar-section-title">Score this game</div>
+            <div class="score-row">
+              <div class="team-score-card">
+                <div class="team-label-row">
+                  <span class="team-name-pill">Team A · You</span>
+                  <span>Hands from pile</span>
+                </div>
+                <div class="team-score-main">
+                  <strong>4</strong>
+                  <span>/ 7 hands to win</span>
+                </div>
+                <div class="team-meta-row">
+                  <span class="team-meta-pill">Current streak: 1</span>
+                  <span>Last win: North (Q♣)</span>
+                </div>
+              </div>
+              <div class="team-score-card team-b">
+                <div class="team-label-row">
+                  <span class="team-name-pill">Team B</span>
+                  <span>Hands from pile</span>
+                </div>
+                <div class="team-score-main">
+                  <strong>3</strong>
+                  <span>/ 7 hands to win</span>
+                </div>
+                <div class="team-meta-row">
+                  <span class="team-meta-pill">Streak: 0</span>
+                  <span>Last win: West</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rules-panel">
+            <h3>Round logic</h3>
+            <div class="rules-highlight">Win two tricks in a row with a non‑Ace to capture the entire table pile.</div>
+            <ul class="rules-list">
+              <li><span class="idx">7.</span><span class="txt">Trump keeper leads the very first card of the game and sets the opening suit.</span></li>
+              <li><span class="idx">8.</span><span class="txt">Players must follow the suit of the turn if they have it; otherwise they may discard or (after reveal) play trump.</span></li>
+              <li><span class="idx">11.</span><span class="txt">Trump keeper's partner without suit wastes any card face up; trump is still hidden.</span></li>
+              <li><span class="idx">12.</span><span class="txt">Opponent without suit forces trump reveal; from then on that suit beats all other suits.</span></li>
+              <li><span class="idx">13.</span><span class="txt">Trump keeper without suit discards face down; card is out of play but not visible.</span></li>
+              <li><span class="idx">18.</span><span class="txt">Same player must win two consecutive tricks to claim all cards currently on the table.</span></li>
+              <li><span class="idx">19.</span><span class="txt">An Ace cannot be the second winning card that collects the pile, but that win still counts towards the streak.</span></li>
+              <li><span class="idx">20.</span><span class="txt">If the second win is with an Ace, pile stays and the player must win again using a non‑Ace.</span></li>
+              <li><span class="idx">21.</span><span class="txt">If trump is never revealed until the last card, trump suit loses its special power and behaves like any normal suit.</span></li>
+            </ul>
+            <div class="actions-row">
+              <div class="left">
+                <span class="left-dot"></span>
+                <span>Attack with trump or waste safely when off‑suit.</span>
+              </div>
+              <div>
+                <button class="btn-ghost" style="padding-inline:0.8rem;">View full rules</button>
+                <button class="btn-primary">Deal next hand</button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
